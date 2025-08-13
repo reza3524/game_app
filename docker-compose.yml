@@ -1,0 +1,16 @@
+services:
+  game-app:
+    image: mysql:latest
+    ports:
+      - "3306:3306"
+    container_name: game-app
+    volumes:
+      - dbdata:/var/lib/mysql
+    restart: always
+    command: ['mysqld', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: game_db
+
+volumes:
+  dbdata:
