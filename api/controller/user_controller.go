@@ -34,3 +34,27 @@ func Register(writer http.ResponseWriter, req *http.Request) {
 	}
 	writer.Write([]byte(`saved!`))
 }
+
+func Login(writer http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		fmt.Fprintf(writer, "Method not allowed")
+	}
+	data, err := io.ReadAll(req.Body)
+	if err != nil {
+		writer.Write([]byte(fmt.Sprintf(`{"error": "%s"}`, err.Error())))
+	}
+	user := request.LoginUserDto{}
+	err = json.Unmarshal(data, &user)
+	if err != nil {
+		writer.Write([]byte(fmt.Sprintf(`{"error": "%s"}`, err.Error())))
+		return
+	}
+	mysqldb := mysql.NewDB()
+	userService := service.NewUser(mysqldb)
+	err = userService.Login(user)
+	if err != nil {
+		writer.Write([]byte(fmt.Sprintf(`{"error": "%s"}`, err.Error())))
+		return
+	}
+	writer.Write([]byte(`LoginSuccess!`))
+}

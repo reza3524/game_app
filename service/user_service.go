@@ -7,4 +7,5 @@ import (
 
 type UserService interface {
 	register(request request.RegisterUserRequest) (response.RegisterUserResponse, error)
+	login(request request.LoginUserDto) error
 }

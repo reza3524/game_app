@@ -1,6 +1,6 @@
 package request
 
-type RegisterUserRequest struct {
+type LoginUserDto struct {
 	Username    string `json:"username"`
 	PhoneNumber string `json:"phoneNumber"`
 	Password    string `json:"password"`
