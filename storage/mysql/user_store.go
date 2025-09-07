@@ -4,21 +4,22 @@ import (
 	"database/sql"
 	"errors"
 	"game/entity"
-	"time"
 )
 
 func (db *DB) IsPhoneNumberUnique(phoneNumber string) (bool, error) {
-	user := entity.User{}
-	var createdAt time.Time
-	row := db.connection.QueryRow(`select * from users where phone_number = ?`, phoneNumber)
-	err := row.Scan(&user.Id, &user.PhoneNumber, &user.Username, &user.Password, &user.TotalScore, &createdAt)
+	user, err := db.fetchUser(`SELECT * FROM users WHERE phone_number = ?`, phoneNumber)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return true, nil
-		}
 		return false, err
 	}
-	return false, nil
+	return user == nil, nil
+}
+
+func (db *DB) FindByUsernameOrPhoneNumber(username, phoneNumber string) (*entity.User, error) {
+	return db.fetchUser(`SELECT * FROM users WHERE username = ? OR phone_number = ? LIMIT 1`, username, phoneNumber)
+}
+
+func (db *DB) FindById(id uint) (*entity.User, error) {
+	return db.fetchUser(`SELECT * FROM users WHERE id = ?`, id)
 }
 
 func (db *DB) Save(user entity.User) (entity.User, error) {
@@ -32,15 +33,23 @@ func (db *DB) Save(user entity.User) (entity.User, error) {
 	return user, nil
 }
 
-func (db *DB) FindByUsernameOrPhoneNumber(username, phoneNumber string) (*entity.User, error) {
-	user := entity.User{}
-	var createdAt time.Time
-	row := db.connection.QueryRow(`select * from users where username = ? or phone_number = ?`, username, phoneNumber)
-	err := row.Scan(&user.Id, &user.PhoneNumber, &user.Username, &user.Password, &user.TotalScore, &createdAt)
+func (db *DB) fetchUser(query string, args ...any) (*entity.User, error) {
+	row := db.connection.QueryRow(query, args...)
+	user, err := scanUser(row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return &entity.User{}, nil
+			return nil, nil
 		}
+		return nil, err
 	}
-	return &user, nil
+	return user, nil
+}
+
+func scanUser(row *sql.Row) (*entity.User, error) {
+	user := &entity.User{}
+	err := row.Scan(&user.Id, &user.PhoneNumber, &user.Username, &user.Password, &user.TotalScore, &user.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }

@@ -18,30 +18,30 @@ func NewUser(repository repository.UserRepository) *UserServiceImpl {
 	return &UserServiceImpl{repository: repository}
 }
 
-func (u *UserServiceImpl) Register(request request.RegisterUserRequest) (response.RegisterUserResponse, error) {
+func (u *UserServiceImpl) Register(request request.UserRegisterRequest) (response.UserRegisterResponse, error) {
 	if len(request.Username) < 3 {
-		return response.RegisterUserResponse{}, errors.New("username should be at least 3 characters long")
+		return response.UserRegisterResponse{}, errors.New("username should be at least 3 characters long")
 	}
 
 	//TODO check the password with regex
 	if request.Password == "" {
-		return response.RegisterUserResponse{}, errors.New("password is empty")
+		return response.UserRegisterResponse{}, errors.New("password is empty")
 	}
 
 	if !utility.IsPhoneNumberValid(request.PhoneNumber) {
-		return response.RegisterUserResponse{}, errors.New("phone number is invalid")
+		return response.UserRegisterResponse{}, errors.New("phone number is invalid")
 	}
 
 	if isUnique, err := u.repository.IsPhoneNumberUnique(request.PhoneNumber); err != nil || !isUnique {
 		if err != nil {
-			return response.RegisterUserResponse{}, err
+			return response.UserRegisterResponse{}, err
 		}
-		return response.RegisterUserResponse{}, errors.New("phone number is not unique")
+		return response.UserRegisterResponse{}, errors.New("phone number is not unique")
 	}
 
 	hashPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return response.RegisterUserResponse{}, err
+		return response.UserRegisterResponse{}, err
 	}
 
 	user := entity.User{
@@ -51,23 +51,40 @@ func (u *UserServiceImpl) Register(request request.RegisterUserRequest) (respons
 	}
 	user, err = u.repository.Save(user)
 	if err != nil {
-		return response.RegisterUserResponse{}, err
+		return response.UserRegisterResponse{}, err
 	}
 
-	return response.RegisterUserResponse{Id: user.Id}, nil
+	return response.UserRegisterResponse{Id: user.Id}, nil
 }
 
-func (u *UserServiceImpl) Login(request request.LoginUserDto) error {
+func (u *UserServiceImpl) Login(request request.UserLoginRequest) (response.UserLoginResponse, error) {
 	existUser, err := u.repository.FindByUsernameOrPhoneNumber(request.Username, request.PhoneNumber)
 	if err != nil {
-		return err
+		return response.UserLoginResponse{}, err
 	}
 	if existUser == nil {
-		return errors.New("user not found")
+		return response.UserLoginResponse{}, errors.New("user not found")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(existUser.Password), []byte(request.Password)); err != nil {
-		return errors.New("username,phoneNumber or password is wrong")
+		return response.UserLoginResponse{}, errors.New("username,phoneNumber or password is wrong")
 	}
-	return nil
+
+	token, err := utility.GenerateToken(existUser.Id)
+	if err != nil {
+		return response.UserLoginResponse{}, err
+	}
+
+	return response.UserLoginResponse{Authorization: token}, nil
+}
+
+func (u *UserServiceImpl) Profile(request request.UserProfileRequest) (response.UserProfileResponse, error) {
+	existUser, err := u.repository.FindById(request.Id)
+	if err != nil {
+		return response.UserProfileResponse{}, err
+	}
+	if existUser == nil {
+		return response.UserProfileResponse{}, errors.New("user not found")
+	}
+	return response.UserProfileResponse{Username: existUser.Username, PhoneNumber: existUser.PhoneNumber}, nil
 }

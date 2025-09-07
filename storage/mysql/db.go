@@ -13,7 +13,7 @@ type DB struct {
 }
 
 func NewDB() *DB {
-	conn, err := sql.Open("mysql", "root:root@(localhost:3306)/game_db")
+	conn, err := sql.Open("mysql", "root:root@(localhost:3306)/game_db?parseTime=true")
 	if err != nil {
 		log.Panicf("cannot connect to database: %v", err)
 	}

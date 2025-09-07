@@ -13,6 +13,7 @@ func main() {
 	mux.HandleFunc("/health", controller.HealthCheckHandler)
 	mux.HandleFunc("/users/register", controller.Register)
 	mux.HandleFunc("/users/login", controller.Login)
+	mux.HandleFunc("/users/profile/", controller.Profile)
 
 	addr := fmt.Sprintf(":%d", port)
 	fmt.Printf("server is up and running on port %d:\n", port)
